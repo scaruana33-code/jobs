@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Search Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111722; --panel-2:#0e131c; --line:#1e2733;
+    --text:#dbe4ee; --muted:#7d8ba0; --faint:#4a566b;
+    --ats:#5b8cff; --linkedin:#37b6c4; --networking:#e0a640; --recruiter:#d47bd4;
+    --good:#4fd18b; --bad:#e2645f;
+    --radius:10px;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 64px;}
+  header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:28px;flex-wrap:wrap;}
+  h1{font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:13.5px;}
+  .btn{
+    background:var(--panel);border:1px solid var(--line);color:var(--text);
+    padding:9px 14px;border-radius:8px;font-size:13.5px;cursor:pointer;
+    font-family:inherit;transition:border-color .15s;
+  }
+  .btn:hover{border-color:var(--faint);}
+  .btn.primary{background:var(--ats);border-color:var(--ats);color:#0b0f14;font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .stat .n{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;line-height:1;}
+  .stat .l{color:var(--muted);font-size:12.5px;margin-top:8px;}
+  .stat .d{font-size:11.5px;margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .d.up{color:var(--good);} .d.down{color:var(--bad);} .d.flat{color:var(--faint);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+  .panel h2{font-size:14px;font-weight:600;margin:0 0 16px;display:flex;justify-content:space-between;align-items:center;}
+  .panel h2 span.hint{color:var(--muted);font-weight:400;font-size:12px;}
+
+  .chart{display:flex;align-items:flex-end;gap:10px;height:140px;padding-top:8px;}
+  .chart .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .chart .bar{width:100%;max-width:34px;display:flex;flex-direction:column-reverse;border-radius:3px 3px 0 0;overflow:hidden;}
+  .chart .seg{width:100%;}
+  .chart .wk{font-size:10.5px;color:var(--faint);font-family:'IBM Plex Mono',monospace;}
+  .chart .val{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;}
+  .legend .item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+  .legend .sw{width:9px;height:9px;border-radius:2px;}
+
+  .funnel{display:grid;grid-template-columns:110px 1fr;gap:8px 14px;align-items:center;}
+  .funnel .src{font-size:12.5px;color:var(--muted);}
+  .funnel .track{background:var(--panel-2);border-radius:5px;height:26px;position:relative;overflow:hidden;border:1px solid var(--line);}
+  .funnel .fill{position:absolute;left:0;top:0;bottom:0;border-radius:5px;}
+  .funnel .stats{position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;font-size:11px;color:var(--text);font-family:'IBM Plex Mono',monospace;}
+
+  .rounds{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .rounds .rc{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .rounds .rc .n{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;}
+  .rounds .rc .l{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--faint);font-weight:500;font-size:11px;text-transform:none;padding:6px 10px;border-bottom:1px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--panel-2);}
+  tr:last-child td{border-bottom:none;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{background:none;border:none;color:var(--faint);cursor:pointer;font-size:14px;padding:2px 6px;}
+  .icon-btn:hover{color:var(--bad);}
+
+  .table-wrap{max-height:340px;overflow:auto;}
+  .table-wrap::-webkit-scrollbar{width:8px;}
+  .table-wrap::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;width:100%;max-width:420px;max-height:85vh;overflow:auto;}
+  .modal h3{margin:0 0 16px;font-size:15px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .field select,.field input{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:7px;font-size:13.5px;font-family:inherit;
+  }
+  .field select:focus,.field input:focus{outline:none;border-color:var(--ats);}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:30px 0;}
+
+  @media(max-width:680px){
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+    .rounds{grid-template-columns:repeat(3,1fr);}
+    .funnel{grid-template-columns:80px 1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Search Log</h1>
+      <div class="sub">Job search pipeline &amp; weekly conversion</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="exportBtn">Export CSV</button>
+      <button class="btn" id="importBtn">Import CSV</button>
+      <input type="file" id="csvFile" accept=".csv" style="display:none;">
+      <button class="btn primary" id="addBtn">+ Log application</button>
+    </div>
+  </header>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="panel">
+    <h2>Weekly volume <span class="hint">last 8 weeks · applied · interviews · offers</span></h2>
+    <div class="chart" id="chart"></div>
+    <div class="legend">
+      <div class="item"><span class="sw" style="background:var(--ats)"></span>Applied</div>
+      <div class="item"><span class="sw" style="background:var(--linkedin)"></span>Interview</div>
+      <div class="item"><span class="sw" style="background:var(--good)"></span>Offer</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Conversion by source <span class="hint">applied → interviewed → offer</span></h2>
+    <div class="funnel" id="funnel"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Interview rounds reached <span class="hint" id="avgRounds"></span></h2>
+    <div class="rounds" id="rounds"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Applications <span class="hint" id="appCount"></span></h2>
+    <div class="table-wrap"><table id="appTable"><thead><tr>
+      <th>Company / role</th><th>Source</th><th>Applied</th><th>Stage</th><th></th>
+    </tr></thead><tbody id="appBody"></tbody></table></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">Log application</h3>
+    <div class="field"><label>Company</label><input id="f_company" placeholder="Acme Corp"></div>
+    <div class="field"><label>Role</label><input id="f_role" placeholder="Senior Engineer"></div>
+    <div class="field"><label>Source</label>
+      <select id="f_source">
+        <option value="ats">ATS — company site</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="networking">Networking / referral</option>
+        <option value="recruiter">Recruiter-initiated</option>
+      </select>
+    </div>
+    <div class="field"><label>Date applied</label><input id="f_date" type="date"></div>
+    <div class="field"><label>Furthest stage reached</label>
+      <select id="f_stage">
+        <option value="applied">Applied — no response yet</option>
+        <option value="screen">Recruiter screen</option>
+        <option value="round1">1st round / phone</option>
+        <option value="round2">2nd round</option>
+        <option value="round3">3rd round</option>
+        <option value="final">Final / onsite</option>
+        <option value="offer">Offer</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="field"><label>Stage date</label><input id="f_stagedate" type="date"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelBtn">Cancel</button>
+      <button class="btn primary" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SOURCES = {ats:{label:'ATS',color:'var(--ats)'},linkedin:{label:'LinkedIn',color:'var(--linkedin)'},networking:{label:'Networking',color:'var(--networking)'},recruiter:{label:'Recruiter',color:'var(--recruiter)'}};
+const STAGE_ORDER = ['applied','screen','round1','round2','round3','final','offer'];
+const STAGE_LABEL = {applied:'Applied',screen:'Screen',round1:'Round 1',round2:'Round 2',round3:'Round 3',final:'Final',offer:'Offer',rejected:'Rejected'};
+const INTERVIEW_STAGES = ['screen','round1','round2','round3','final'];
+
+let apps = [];
+
+function uid(){return Math.random().toString(36).slice(2,10);}
+function isoWeek(d){
+  const dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day = dt.getUTCDay()||7;
+  dt.setUTCDate(dt.getUTCDate()+4-day);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  const wk = Math.ceil((((dt-yearStart)/86400000)+1)/7);
+  return dt.getUTCFullYear()+'-W'+String(wk).padStart(2,'0');
+}
+function weekLabel(d){
+  const monday = new Date(d);
+  const day = monday.getDay()||7;
+  monday.setDate(monday.getDate()-day+1);
+  return (monday.getMonth()+1)+'/'+monday.getDate();
+}
+function last8Weeks(){
+  const weeks=[];
+  const now = new Date();
+  for(let i=7;i>=0;i--){
+    const d = new Date(now); d.setDate(d.getDate()-i*7);
+    weeks.push({key:isoWeek(d),label:weekLabel(d)});
+  }
+  return weeks;
+}
+
+function seedData(){
+  const out=[]; const now=new Date();
+  const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const companies=['Nimbus','Vertex Labs','Arclight','Meridian','Fernway','Kestrel','Loomis&Co','Palisade','Hearthstone','Glyph','Northwind','Cobalt Systems','Anvil','Tidewater','Ferro','Basalt Inc'];
+  const roles=['Software Engineer','Senior SWE','Backend Engineer','Product Engineer','Staff Engineer','Full-Stack Developer'];
+  const srcKeys=Object.keys(SOURCES);
+  let n=34;
+  for(let i=0;i<n;i++){
+    const daysAgo = rand(1,56);
+    const applied = new Date(now); applied.setDate(applied.getDate()-daysAgo);
+    const source = srcKeys[rand(0,3)];
+    const roll = Math.random();
+    let reach='applied';
+    // networking/recruiter convert better than ats, roughly
+    const bias = source==='ats'?0.30:source==='linkedin'?0.42:source==='networking'?0.62:0.55;
+    if(roll < bias){
+      const stagesHit = rand(1, source==='ats'?3:5);
+      reach = INTERVIEW_STAGES[Math.min(stagesHit-1,4)];
+      if(Math.random() < (source==='networking'?0.28:0.14) && stagesHit>=3) reach='offer';
+    } else if(roll > 0.93){
+      reach='rejected';
+    }
+    const app = {id:uid(),company:companies[rand(0,companies.length-1)],role:roles[rand(0,roles.length-1)],source,dateApplied:applied.toISOString().slice(0,10),stage:reach,stageDate:null};
+    if(reach!=='applied'){
+      const stageDaysAfter = rand(3,18);
+      const sd = new Date(applied); sd.setDate(sd.getDate()+stageDaysAfter);
+      if(sd>now) sd.setTime(now.getTime());
+      app.stageDate = sd.toISOString().slice(0,10);
+    }
+    out.push(app);
+  }
+  return out;
+}
+
+function stageIndex(stage){ return stage==='rejected'?-1:STAGE_ORDER.indexOf(stage); }
+
+function computeStats(){
+  const weeks = last8Weeks();
+  const byWeek = {};
+  weeks.forEach(w=>byWeek[w.key]={applied:0,interview:0,offer:0});
+  apps.forEach(a=>{
+    const wk = isoWeek(new Date(a.dateApplied));
+    if(byWeek[wk]) byWeek[wk].applied++;
+    if(stageIndex(a.stage) >= STAGE_ORDER.indexOf('screen') && a.stageDate){
+      const swk = isoWeek(new Date(a.stageDate));
+      if(byWeek[swk]) byWeek[swk].interview++;
+    }
+    if(a.stage==='offer' && a.stageDate){
+      const owk = isoWeek(new Date(a.stageDate));
+      if(byWeek[owk]) byWeek[owk].offer++;
+    }
+  });
+  return {weeks, byWeek};
+}
+
+function renderStats(){
+  const {weeks, byWeek} = computeStats();
+  const thisWk = byWeek[weeks[7].key], lastWk = byWeek[weeks[6].key];
+  const offers = apps.filter(a=>a.stage==='offer').length;
+  const totalInterviewed = apps.filter(a=>stageIndex(a.stage)>=STAGE_ORDER.indexOf('screen')).length;
+  const totalRounds = apps.reduce((s,a)=>{const i=stageIndex(a.stage); return s+(i>=1?i:0);},0);
+  const avgRounds = totalInterviewed? (totalRounds/apps.length).toFixed(2) : '0.00';
+
+  function trend(cur,prev){
+    if(cur===prev) return {c:'flat',t:'– no change'};
+    return cur>prev ? {c:'up',t:'▲ +'+(cur-prev)+' vs last wk'} : {c:'down',t:'▼ '+(cur-prev)+' vs last wk'};
+  }
+  const a1=trend(thisWk.applied,lastWk.applied), a2=trend(thisWk.interview,lastWk.interview), a3=trend(thisWk.offer,lastWk.offer);
+
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat"><div class="n">${thisWk.applied}</div><div class="l">Applications this week</div><div class="d ${a1.c}">${a1.t}</div></div>
+    <div class="stat"><div class="n">${thisWk.interview}</div><div class="l">Interview events this week</div><div class="d ${a2.c}">${a2.t}</div></div>
+    <div class="stat"><div class="n">${avgRounds}</div><div class="l">Avg. rounds per application</div><div class="d flat mono">${apps.length} applications total</div></div>
+    <div class="stat"><div class="n">${offers}</div><div class="l">Offers to date</div><div class="d ${a3.c}">${a3.t}</div></div>
+  `;
+  document.getElementById('appCount').textContent = apps.length + ' logged';
+  document.getElementById('avgRounds').textContent = avgRounds + ' avg rounds · '+offers+' offers';
+}
+
+function renderChart(){
+  const {weeks, byWeek} = computeStats();
+  const maxV = Math.max(1, ...weeks.map(w=>byWeek[w.key].applied+byWeek[w.key].interview+byWeek[w.key].offer));
+  const el = document.getElementById('chart');
+  el.innerHTML = weeks.map(w=>{
+    const v = byWeek[w.key];
+    const total = v.applied+v.interview+v.offer;
+    const scale = 118/maxV;
+    return `<div class="col">
+      <div class="val">${total||''}</div>
+      <div class="bar" style="height:${Math.max(total*scale,total>0?3:0)}px">
+        ${v.offer?`<div class="seg" style="height:${v.offer*scale}px;background:var(--good)"></div>`:''}
+        ${v.interview?`<div class="seg" style="height:${v.interview*scale}px;background:var(--linkedin)"></div>`:''}
+        ${v.applied?`<div class="seg" style="height:${v.applied*scale}px;background:var(--ats)"></div>`:''}
+      </div>
+      <div class="wk">${w.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderFunnel(){
+  const el = document.getElementById('funnel');
+  const maxApplied = Math.max(1, ...Object.keys(SOURCES).map(s=>apps.filter(a=>a.source===s).length));
+  el.innerHTML = Object.entries(SOURCES).map(([key,src])=>{
+    const pool = apps.filter(a=>a.source===key);
+    const applied = pool.length;
+    const interviewed = pool.filter(a=>stageIndex(a.stage)>=STAGE_ORDER.indexOf('screen')).length;
+    const offered = pool.filter(a=>a.stage==='offer').length;
+    const pct = applied? Math.round(interviewed/applied*100) : 0;
+    const offPct = applied? Math.round(offered/applied*100) : 0;
+    const width = applied? Math.max((applied/maxApplied)*100,6) : 0;
+    return `<div class="src">${src.label}</div>
+      <div class="track"><div class="fill" style="width:${width}%;background:${src.color};opacity:.85"></div>
+        <div class="stats">${applied} applied · ${pct}% interviewed · ${offPct}% offer</div>
+      </div>`;
+  }).join('');
+}
+
+function renderRounds(){
+  const counts = {screen:0,round1:0,round2:0,round3:0,final:0};
+  apps.forEach(a=>{ const i=stageIndex(a.stage); if(i>=1){ for(let k=1;k<=i;k++){ counts[STAGE_ORDER[k]]++; } } });
+  const el = document.getElementById('rounds');
+  el.innerHTML = ['screen','round1','round2','round3','final'].map(s=>`
+    <div class="rc"><div class="n">${counts[s]}</div><div class="l">${STAGE_LABEL[s]}</div></div>
+  `).join('');
+}
+
+function renderTable(){
+  const body = document.getElementById('appBody');
+  if(!apps.length){ body.innerHTML = `<tr><td colspan="5"><div class="empty">No applications logged yet — add your first one.</div></td></tr>`; return; }
+  const sorted = [...apps].sort((a,b)=> b.dateApplied.localeCompare(a.dateApplied));
+  body.innerHTML = sorted.map(a=>{
+    const src = SOURCES[a.source];
+    const stageColor = a.stage==='offer'?'var(--good)':a.stage==='rejected'?'var(--bad)':'var(--muted)';
+    return `<tr>
+      <td><strong>${esc(a.company)}</strong><br><span style="color:var(--muted);font-size:12px">${esc(a.role)}</span></td>
+      <td><span class="tag mono" style="color:${src.color};background:${src.color}22">${src.label}</span></td>
+      <td class="mono" style="color:var(--muted)">${a.dateApplied}</td>
+      <td><span class="mono" style="color:${stageColor}">${STAGE_LABEL[a.stage]}</span></td>
+      <td><div class="row-actions"><button class="icon-btn" onclick="removeApp('${a.id}')" title="Remove">✕</button></div></td>
+    </tr>`;
+  }).join('');
+}
+function esc(s){return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function renderAll(){ renderStats(); renderChart(); renderFunnel(); renderRounds(); renderTable(); }
+
+const STORAGE_KEY = 'searchlog.applications.v1';
+
+function persist(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(apps)); }
+  catch(e){ console.warn('Could not save to localStorage:', e); }
+}
+window.removeApp = function(id){
+  apps = apps.filter(a=>a.id!==id);
+  renderAll(); persist();
+};
+
+const modalBg=document.getElementById('modalBg');
+document.getElementById('addBtn').onclick=()=>{
+  ['f_company','f_role','f_stagedate'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_source').value='ats';
+  document.getElementById('f_stage').value='applied';
+  document.getElementById('f_date').value=new Date().toISOString().slice(0,10);
+  modalBg.classList.add('open');
+};
+document.getElementById('cancelBtn').onclick=()=>modalBg.classList.remove('open');
+document.getElementById('saveBtn').onclick=()=>{
+  const company=document.getElementById('f_company').value.trim();
+  const role=document.getElementById('f_role').value.trim();
+  if(!company||!role) return;
+  const stage=document.getElementById('f_stage').value;
+  apps.push({
+    id:uid(), company, role,
+    source:document.getElementById('f_source').value,
+    dateApplied:document.getElementById('f_date').value||new Date().toISOString().slice(0,10),
+    stage,
+    stageDate: stage==='applied'? null : (document.getElementById('f_stagedate').value||new Date().toISOString().slice(0,10))
+  });
+  modalBg.classList.remove('open');
+  renderAll(); persist();
+};
+
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  if(!lines.length) return [];
+  const splitLine = l=>{
+    const out=[]; let cur=''; let inQ=false;
+    for(let i=0;i<l.length;i++){
+      const c=l[i];
+      if(c==='"'){ inQ=!inQ; continue; }
+      if(c===','&&!inQ){ out.push(cur); cur=''; continue; }
+      cur+=c;
+    }
+    out.push(cur);
+    return out.map(s=>s.trim());
+  };
+  const header = splitLine(lines[0]).map(h=>h.toLowerCase());
+  const idx = k => header.indexOf(k);
+  const iCompany=idx('company'), iRole=idx('role'), iSource=idx('source'), iDate=idx('dateapplied'), iStage=idx('stage'), iStageDate=idx('stagedate');
+  const srcMap={ats:'ats','ats / careers site':'ats','company site':'ats',linkedin:'linkedin',networking:'networking',referral:'networking',recruiter:'recruiter','recruiter-initiated':'recruiter'};
+  const stageMap={applied:'applied',screen:'screen','recruiter screen':'screen',round1:'round1','1st round':'round1','phone screen':'round1',round2:'round2','2nd round':'round2',round3:'round3','3rd round':'round3',final:'final',onsite:'final',offer:'offer',rejected:'rejected'};
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const cells = splitLine(lines[i]);
+    if(!cells.length || !cells.join('').trim()) continue;
+    const company = iCompany>=0? cells[iCompany] : cells[0];
+    const role = iRole>=0? cells[iRole] : cells[1]||'';
+    if(!company) continue;
+    const source = srcMap[(iSource>=0?cells[iSource]:'ats').toLowerCase()] || 'ats';
+    const dateApplied = iDate>=0 && cells[iDate] ? cells[iDate] : new Date().toISOString().slice(0,10);
+    const stage = stageMap[(iStage>=0?cells[iStage]:'applied').toLowerCase()] || 'applied';
+    const stageDate = iStageDate>=0 && cells[iStageDate] ? cells[iStageDate] : (stage==='applied'? null : dateApplied);
+    rows.push({id:uid(),company,role,source,dateApplied,stage,stageDate});
+  }
+  return rows;
+}
+
+document.getElementById('importBtn').onclick=()=>document.getElementById('csvFile').click();
+document.getElementById('csvFile').onchange=(e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const rows = parseCSV(reader.result);
+    if(rows.length){
+      apps = mergeApps(apps, rows);
+      renderAll(); persist();
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+};
+
+const RANK={applied:0,screen:1,round1:2,round2:3,round3:4,final:5,offer:6};
+const rankOf=s=>s==='rejected'?-1:(RANK[s]??0);
+const keyOf=a=>[a.company,a.role,a.dateApplied].map(x=>(x||'').toLowerCase().trim()).join('|');
+function mergeApps(base, incoming){
+  const out=base.slice();
+  const map=new Map(out.map(a=>[keyOf(a),a]));
+  incoming.forEach(n=>{
+    const cur=map.get(keyOf(n));
+    if(!cur){ out.push(n); map.set(keyOf(n),n); return; }
+    const advance = rankOf(n.stage)>rankOf(cur.stage) || (n.stage==='rejected' && cur.stage==='applied');
+    if(advance){ cur.stage=n.stage; cur.stageDate=n.stageDate; }
+  });
+  return out;
+}
+
+document.getElementById('exportBtn').onclick=()=>{
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines=apps.map(a=>[a.company,a.role,a.source,a.dateApplied,a.stage,a.stageDate||''].map(q).join(','));
+  const blob=new Blob(['company,role,source,dateApplied,stage,stageDate\n'+lines.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const el=document.createElement('a');
+  el.href=url; el.download='search-log-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(el); el.click(); el.remove(); URL.revokeObjectURL(url);
+};
+
+async function init(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    apps = raw ? JSON.parse(raw) : [];
+  }catch(e){ apps = []; }
+  renderAll();
+  // Pull the weekly pipeline output if it is hosted next to this page
+  try{
+    const res = await fetch('data/applications.json',{cache:'no-store'});
+    if(res.ok){
+      const j = await res.json();
+      const items = Array.isArray(j) ? j : (j.items||[]);
+      if(items.length){ apps = mergeApps(apps, items); persist(); renderAll(); }
+      if(j.updated) document.querySelector('.sub').textContent='Pipeline synced '+j.updated.slice(0,10)+' · weekly conversion';
+    }
+  }catch(e){}
+}
+init();
+</script>
+</body>
+</html>
